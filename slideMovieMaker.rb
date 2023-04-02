@@ -32,12 +32,15 @@ class Converter
 	end
 
 
-	def self.convert(imagePath, soundPath, outputPath, duration=nil, useVideoToolBox=false, options=nil)
+	def self.convert(imagePath, soundPath, outputPath, duration=nil, fadeInDuration=0.5, addCrossFadeDuration=false, useVideoToolBox=false, options=nil)
 		if File.exist?(imagePath) && File.exist?(soundPath) then
-			exec_cmd = "ffmpeg -loop 1 -framerate 15 -i #{Shellwords.escape(imagePath)} -i #{Shellwords.escape(soundPath)}"
+			exec_cmd = "ffmpeg -loop 1 -framerate 15 -i #{Shellwords.escape(imagePath)}"
+			exec_cmd += " -itsoffset #{fadeInDuration}" if addCrossFadeDuration
+			exec_cmd += " -i #{Shellwords.escape(soundPath)}"
 			exec_cmd += ( useVideoToolBox ? " -c:v h264_videotoolbox -b:v 5M" : "" )
 			exec_cmd += " -tune stillimage -crf 18 -c:a aac -shortest -strict -2"
-			exec_cmd += " -t #{duration}" if duration
+			exec_cmd += " -t #{duration+ (addCrossFadeDuration ? (fadeInDuration * 2) : 0.0)}" if duration
+			exec_cmd += " -af 'adelay=#{fadeInDuration*1000}|all=1'" if addCrossFadeDuration
 			exec_cmd += " #{options}" if options!=nil
 			exec_cmd += " #{outputPath}"
 
@@ -53,6 +56,8 @@ options = {
 	:soundType => "\.wav$",
 	:output => ".",
 	:minDuration => nil,
+	:fadeInDuration => 0.5,
+	:addCrossFadeDuration => false,
 	:useToolBox => false
 }
 
@@ -73,6 +78,11 @@ opt_parser = OptionParser.new do |opts|
 
 	opts.on("-m", "--minDuration=", "Set minimum duration if necessary (default:#{options[:minDuration]})") do |minDuration|
 		options[:minDuration] = minDuration.to_f
+	end
+
+	opts.on("-a", "--addSilentDuration=", "Set silent duration for cross fade, etc. if necessary") do |addSilentDuration|
+		options[:fadeInDuration] = addSilentDuration.to_f
+		options[:addCrossFadeDuration] = (options[:fadeInDuration]!=0)
 	end
 
 	opts.on("-t", "--useToolBox", "Set if use toolbox (default:#{options[:useToolBox]})") do
@@ -103,6 +113,6 @@ durations.slice!(minSize..-1)
 slideFiles.zip(soundFiles, durations).each do |anElement|
 	outputPath = options[:output]+"/"+FileUtil.getFilenameFromPathWithoutExt(anElement[0])+".mp4"
 	FileUtils.rm_f(outputPath) if File.exist?(outputPath)
-	Converter.convert( anElement[0], anElement[1], outputPath, anElement[2], options[:useToolBox] )
+	Converter.convert( anElement[0], anElement[1], outputPath, anElement[2], options[:fadeInDuration], options[:addCrossFadeDuration], options[:useToolBox] )
 end
 
