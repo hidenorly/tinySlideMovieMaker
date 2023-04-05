@@ -39,8 +39,9 @@ class Converter
 			exec_cmd += " -i #{Shellwords.escape(soundPath)}"
 			exec_cmd += ( useVideoToolBox ? " -c:v h264_videotoolbox -b:v 5M" : "" )
 			exec_cmd += " -tune stillimage -crf 18 -c:a aac -shortest -strict -2"
-			exec_cmd += " -t #{duration+ (addCrossFadeDuration ? (fadeInDuration * 2) : 0.0)}" if duration
+			exec_cmd += " -t #{duration + (addCrossFadeDuration ? (fadeInDuration * 2) : 0.0)}" if duration
 			exec_cmd += " -af 'adelay=#{fadeInDuration*1000}|all=1'" if addCrossFadeDuration
+			exec_cmd += " -af 'apad=pad_dur=#{fadeInDuration}'" if addCrossFadeDuration
 			exec_cmd += " #{options}" if options!=nil
 			exec_cmd += " #{outputPath}"
 
@@ -85,7 +86,7 @@ opt_parser = OptionParser.new do |opts|
 		options[:addCrossFadeDuration] = (options[:fadeInDuration]!=0)
 	end
 
-	opts.on("-t", "--useToolBox", "Set if use toolbox (default:#{options[:useToolBox]})") do
+	opts.on("-t", "--useToolBox", "Set if use toolbox (hwenc) for MacOS X (default:#{options[:useToolBox]})") do
 		options[:useToolBox] = true
 	end
 end.parse!
