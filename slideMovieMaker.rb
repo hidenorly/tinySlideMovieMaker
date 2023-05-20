@@ -59,7 +59,8 @@ options = {
 	:minDuration => nil,
 	:fadeInDuration => 0.5,
 	:addCrossFadeDuration => false,
-	:useToolBox => false
+	:useToolBox => false,
+	:pages => nil
 }
 
 opt_parser = OptionParser.new do |opts|
@@ -89,6 +90,11 @@ opt_parser = OptionParser.new do |opts|
 	opts.on("-t", "--useToolBox", "Set if use toolbox (hwenc) for MacOS X (default:#{options[:useToolBox]})") do
 		options[:useToolBox] = true
 	end
+
+	opts.on("-p", "--pages=", "Set pages e.g. 5-7 or 5- or 5") do |pages|
+		options[:pages] = pages
+	end
+
 end.parse!
 
 FileUtil.ensureDirectory(options[:output])
@@ -111,9 +117,25 @@ slideFiles.slice!(minSize..-1)
 soundFiles.slice!(minSize..-1)
 durations.slice!(minSize..-1)
 
+startPage = nil
+endPage = nil
+if options[:pages] then
+	if options[:pages].include?("-") then
+		pages = options[:pages].split("-")
+		startPage = pages[0].to_i
+		endPage = (pages.length == 2) ? pages[1].to_i : nil
+	else
+		startPage = endPage = options[:pages].to_i
+	end
+end
+
+index = 1
 slideFiles.zip(soundFiles, durations).each do |anElement|
-	outputPath = options[:output]+"/"+FileUtil.getFilenameFromPathWithoutExt(anElement[0])+".mp4"
-	FileUtils.rm_f(outputPath) if File.exist?(outputPath)
-	Converter.convert( anElement[0], anElement[1], outputPath, anElement[2], options[:fadeInDuration], options[:addCrossFadeDuration], options[:useToolBox] )
+	if (startPage == nil) || (index>=startPage && (endPage==nil || index<=endPage)) then
+		outputPath = options[:output]+"/"+FileUtil.getFilenameFromPathWithoutExt(anElement[0])+".mp4"
+		FileUtils.rm_f(outputPath) if File.exist?(outputPath)
+		Converter.convert( anElement[0], anElement[1], outputPath, anElement[2], options[:fadeInDuration], options[:addCrossFadeDuration], options[:useToolBox] )
+	end
+	index = index + 1
 end
 
