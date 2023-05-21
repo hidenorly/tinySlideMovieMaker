@@ -82,9 +82,17 @@ opt_parser = OptionParser.new do |opts|
 		options[:minDuration] = minDuration.to_f
 	end
 
-	opts.on("-a", "--addSilentDuration=", "Set silent duration for cross fade, etc. if necessary") do |addSilentDuration|
+	opts.on("-a", "--addSilentDuration=", "Set silent duration for fadeInDuration and CrossFadeDuration. if necessary") do |addSilentDuration|
 		options[:fadeInDuration] = addSilentDuration.to_f
 		options[:addCrossFadeDuration] = (options[:fadeInDuration]!=0)
+	end
+
+	opts.on("-f", "--fadeInDuration=", "Set fade-in duration if necessary") do |fadeInDuration|
+		options[:fadeInDuration] = fadeInDuration.to_f
+	end
+
+	opts.on("-c", "--crossFadeDuration=", "Set cross fade duration if necessary") do |crossFadeDuration|
+		options[:addCrossFadeDuration] = crossFadeDuration.to_f
 	end
 
 	opts.on("-t", "--useToolBox", "Set if use toolbox (hwenc) for MacOS X (default:#{options[:useToolBox]})") do
