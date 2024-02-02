@@ -37,8 +37,8 @@ class Converter
 			exec_cmd = "ffmpeg -loop 1 -framerate 15 -i #{Shellwords.escape(imagePath)}"
 			exec_cmd += " -itsoffset #{fadeInDuration}" if addCrossFadeDuration
 			exec_cmd += " -i #{Shellwords.escape(soundPath)}"
-			exec_cmd += ( useVideoToolBox ? " -c:v h264_videotoolbox -b:v 5M" : "" )
-			exec_cmd += " -tune stillimage -crf 18 -c:a aac -shortest -strict -2"
+			exec_cmd += ( useVideoToolBox ? " -c:v h264_videotoolbox -b:v 10M" : "" )
+			exec_cmd += " -tune stillimage -crf 51 -c:a aac -shortest -strict -2"
 			exec_cmd += " -t #{duration + (addCrossFadeDuration ? (fadeInDuration * 2) : 0.0)}" if duration
 			exec_cmd += " -af 'adelay=#{fadeInDuration*1000}|all=1'" if addCrossFadeDuration
 			exec_cmd += " -af 'apad=pad_dur=#{fadeInDuration}'" if addCrossFadeDuration
