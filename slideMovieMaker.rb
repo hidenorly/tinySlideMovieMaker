@@ -1,4 +1,4 @@
-#  Copyright (C) 2023 hidenorly
+#  Copyright (C) 2023, 2024 hidenorly
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,15 +33,20 @@ class Converter
 
 
 	def self.convert(imagePath, soundPath, outputPath, duration=nil, fadeInDuration=0.5, addCrossFadeDuration=false, useVideoToolBox=false, options=nil)
-		if File.exist?(imagePath) && File.exist?(soundPath) then
+		if File.exist?(imagePath) then
+			isSound = soundPath && File.exist?(soundPath)
 			exec_cmd = "ffmpeg -loop 1 -framerate 15 -i #{Shellwords.escape(imagePath)}"
-			exec_cmd += " -itsoffset #{fadeInDuration}" if addCrossFadeDuration
-			exec_cmd += " -i #{Shellwords.escape(soundPath)}"
+			if isSound then
+				exec_cmd += " -itsoffset #{fadeInDuration}" if addCrossFadeDuration
+				exec_cmd += " -i #{Shellwords.escape(soundPath)}"
+			end
 			exec_cmd += ( useVideoToolBox ? " -c:v h264_videotoolbox -b:v 10M" : "" )
-			exec_cmd += " -tune stillimage -crf 51 -c:a aac -shortest -strict -2"
-			exec_cmd += " -t #{duration + (addCrossFadeDuration ? (fadeInDuration * 2) : 0.0)}" if duration
-			exec_cmd += " -af 'adelay=#{fadeInDuration*1000}|all=1'" if addCrossFadeDuration
-			exec_cmd += " -af 'apad=pad_dur=#{fadeInDuration}'" if addCrossFadeDuration
+			exec_cmd += " -tune stillimage -crf 51 #{isSound ? "-c:a aac" : ""} -shortest -strict -2"
+			exec_cmd += " -t #{(duration ? duration : 0) + (addCrossFadeDuration ? (fadeInDuration * 2) : 0.0)}" if duration
+			if isSound then
+				exec_cmd += " -af 'adelay=#{fadeInDuration*1000}|all=1'" if addCrossFadeDuration
+				exec_cmd += " -af 'apad=pad_dur=#{fadeInDuration}'" if addCrossFadeDuration
+			end
 			exec_cmd += " #{options}" if options!=nil
 			exec_cmd += " #{outputPath}"
 
@@ -70,7 +75,7 @@ opt_parser = OptionParser.new do |opts|
 		options[:slides] = slides.to_s
 	end
 
-	opts.on("-v", "--sound=", "Set sound (.wav) path (default:#{options[:sound]})") do |sound|
+	opts.on("-v", "--sound=", "Set sound (.wav) path (default:#{options[:sound]}). Set \"\" if no voice") do |sound|
 		options[:sound] = sound.to_s
 	end
 
@@ -106,18 +111,25 @@ opt_parser = OptionParser.new do |opts|
 end.parse!
 
 FileUtil.ensureDirectory(options[:output])
+isNoVoice = options[:sound] == "" ? true : false
 
 slideFiles = []
 FileUtil.iteratePath( options[:slides], options[:slideType], slideFiles, false, false, 1 )
 slideFiles.sort!
 
 soundFiles = []
-FileUtil.iteratePath( options[:sound], options[:soundType], soundFiles, false, false, 1 )
-soundFiles.sort!
+if !isNoVoice then
+	FileUtil.iteratePath( options[:sound], options[:soundType], soundFiles, false, false, 1 )
+	soundFiles.sort!
+else
+	slideFiles.each do |aFile|
+		soundFiles << nil
+	end
+end
 
 durations = []
 soundFiles.each do |aSound|
-	durations << Converter.getDuration(aSound, options[:minDuration])
+	durations << ( isNoVoice ? options[:minDuration] : Converter.getDuration(aSound, options[:minDuration]) )
 end
 
 minSize = [slideFiles.length, soundFiles.length, durations.length].min
