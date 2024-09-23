@@ -104,7 +104,7 @@ opt_parser = OptionParser.new do |opts|
 		options[:useToolBox] = true
 	end
 
-	opts.on("-p", "--pages=", "Set pages e.g. 5-7 or 5- or 5") do |pages|
+	opts.on("-p", "--pages=", "Set pages e.g. 5-7 or 5- or 5 or 1,2,5-7") do |pages|
 		options[:pages] = pages
 	end
 
@@ -137,25 +137,35 @@ slideFiles.slice!(minSize..-1)
 soundFiles.slice!(minSize..-1)
 durations.slice!(minSize..-1)
 
-startPage = nil
-endPage = nil
+pages = []
 if options[:pages] then
-	if options[:pages].include?("-") then
-		pages = options[:pages].split("-")
-		startPage = pages[0].to_i
-		endPage = (pages.length == 2) ? pages[1].to_i : nil
+	if options[:pages].include?(",") then
+		pages = options[:pages].split(",")
 	else
-		startPage = endPage = options[:pages].to_i
+		pages = [ options[:pages] ]
 	end
 end
 
-index = 1
-slideFiles.zip(soundFiles, durations).each do |anElement|
-	if (startPage == nil) || (index>=startPage && (endPage==nil || index<=endPage)) then
-		outputPath = options[:output]+"/"+FileUtil.getFilenameFromPathWithoutExt(anElement[0])+".mp4"
-		FileUtils.rm_f(outputPath) if File.exist?(outputPath)
-		Converter.convert( anElement[0], anElement[1], outputPath, anElement[2], options[:fadeInDuration], options[:addCrossFadeDuration], options[:useToolBox] )
+pages.each do |_pages|
+	startPage = nil
+	endPage = nil
+	if _pages then
+		if _pages.include?("-") then
+			thePages = options[:pages].split("-")
+			startPage = thePages[0].to_i
+			endPage = (thePages.length == 2) ? thePages[1].to_i : nil
+		else
+			startPage = endPage = _pages.to_i
+		end
 	end
-	index = index + 1
-end
 
+	index = 1
+	slideFiles.zip(soundFiles, durations).each do |anElement|
+		if (startPage == nil) || (index>=startPage && (endPage==nil || index<=endPage)) then
+			outputPath = options[:output]+"/"+FileUtil.getFilenameFromPathWithoutExt(anElement[0])+".mp4"
+			FileUtils.rm_f(outputPath) if File.exist?(outputPath)
+			Converter.convert( anElement[0], anElement[1], outputPath, anElement[2], options[:fadeInDuration], options[:addCrossFadeDuration], options[:useToolBox] )
+		end
+		index = index + 1
+	end
+end
