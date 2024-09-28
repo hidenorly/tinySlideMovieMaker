@@ -144,6 +144,8 @@ if options[:pages] then
 	else
 		pages = [ options[:pages] ]
 	end
+else
+	pages = [ options[:pages] ]
 end
 
 pages.each do |_pages|
